@@ -3,10 +3,14 @@ import sys, time
 import navio.rcinput
 import navio.util
 import navio.pwm
+import navio.mpu9250
 
 navio.util.check_apm()
 
 rcin = navio.rcinput.RCInput()
+
+imu = navio.mpu9250.MPU9250()
+imu.initialize()
 
 #These values come from reading the transmitter signals
 SERVO_MAX = 2015./1000. #milliseconds
@@ -17,6 +21,8 @@ Motor_left = 0 #This is the first PWM Channel (Channel 1 on Navio2)
 Motor_right = 1 #This is the second PWM Channel (Channel 2 on Navio2)
 
 DIFFERENTIAL = 1.0
+
+time.sleep(1)
 
 #Setup PWM output
 with navio.pwm.PWM(Motor_left) as pwmLeft:
@@ -48,7 +54,12 @@ with navio.pwm.PWM(Motor_left) as pwmLeft:
             arm_switch = float(aileron_switch)/1000.
             mode_switch = float(three_pos)/1000.
 
+            #Need to get Yaw from IMU for controller
+            m9a, m9g, m9m = imu.getMotion9()
+            print(m9a,m9g,m9m)
+
             #Need to use differential thrust since there are two independently driven wheels
+            #Left motor is soldered backwards
             diff_left = SERVO_MID + (SERVO_MID - pitch) + DIFFERENTIAL * (roll - SERVO_MID)
             #Need a saturation block so I don't burn up the motors
             if(diff_left < SERVO_MIN):
@@ -65,9 +76,9 @@ with navio.pwm.PWM(Motor_left) as pwmLeft:
             f_pitch = "{:.2f}".format(pitch)
             f_diff_left = "{:.2f}".format(diff_left)
             f_diff_right = "{:.2f}".format(diff_right)
-            print(f_roll,f_pitch,f_diff_left,f_diff_right)
+            #print(f_roll,f_pitch,f_diff_left,f_diff_right)
 
             #Send signals to the ESC
-            pwmLeft.set_duty_cycle(diff_left)
-            pwmRight.set_duty_cycle(diff_right)
-            #time.sleep(1)
+            #pwmLeft.set_duty_cycle(diff_left)
+            #pwmRight.set_duty_cycle(diff_right)
+            time.sleep(1)
